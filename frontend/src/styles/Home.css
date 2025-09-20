@@ -1,0 +1,73 @@
+/* Home.css */
+
+.hero-section {
+  min-height: 100vh;
+  padding-top: 80px;
+  padding-left: 30px;
+  padding-right: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  flex-wrap: wrap;
+  gap: 30px;
+}
+
+/* Carousel Styling */
+.carousel-inner img {
+  border-radius: 15px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  height: auto;
+  max-height: 400px;
+  object-fit: cover;
+}
+
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 50%;
+}
+
+/* Quote Area */
+.quote-area h1 {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.quote-area p {
+  font-size: 1rem;
+  margin-top: 15px;
+  color: #555;
+}
+
+.explore-btn {
+  font-size: 0.9rem;
+  padding: 8px 18px;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.explore-btn:hover {
+  background-color: #004080;
+  color: #fff;
+}
+
+/* Responsive Styling */
+@media (max-width: 768px) {
+  .hero-section {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .quote-area,
+  .image-area {
+    flex: 1 1 100%;
+    padding: 0;
+  }
+
+  .carousel-inner img {
+    max-height: 250px;
+  }
+}

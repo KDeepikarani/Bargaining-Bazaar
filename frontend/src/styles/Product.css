@@ -1,0 +1,95 @@
+/* Product.css */
+
+.container {
+  max-width: 1140px;
+  margin-top: 80px;
+  padding-bottom: 60px;
+}
+
+h2 {
+  font-weight: bold;
+  color: #333;
+}
+
+.product-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.06);
+  height: 100%;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+}
+
+.card-img-top {
+  height: 220px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.card-body {
+  padding: 15px;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #222;
+}
+
+.card-text {
+  font-size: 0.95rem;
+  color: #444;
+  margin-bottom: 10px;
+}
+
+.product-actions {
+  display: flex;
+  justify-content: space-between;
+}
+
+.product-actions .btn {
+  width: 32%;
+}
+
+.message-box {
+  margin-top: 60px;
+  padding: 30px;
+  border-radius: 12px;
+  background-color: #f9f9f9;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+}
+
+.message-box h4 {
+  margin-bottom: 20px;
+  font-weight: 600;
+  color: #2b2b2b;
+}
+
+.message-box .form-label {
+  font-weight: 500;
+  color: #555;
+}
+
+#message {
+  resize: none;
+}
+
+/* Responsive Fixes */
+@media (max-width: 768px) {
+  .product-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .product-actions .btn {
+    width: 100%;
+  }
+
+  .card-img-top {
+    height: 180px;
+  }
+}
