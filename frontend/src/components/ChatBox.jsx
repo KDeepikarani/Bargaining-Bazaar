@@ -1,173 +1,195 @@
-/* // import React, { useState, useEffect } from "react";
-// import { io } from "socket.io-client";
+// import React, { useEffect, useState } from "react";
+// import io from "socket.io-client";
 
-// const socket = io("http://localhost:5000");
+// const socket = io("http://localhost:5000"); // ✅ backend port
 
-// export default function ChatBox({ user, otherUser }) {
+// const ChatBox = ({ productId, userName, sender, userEmail, sellerEmail }) => {
 //   const [messages, setMessages] = useState([]);
-//   const [input, setInput] = useState("");
+//   const [newMsg, setNewMsg] = useState("");
+//   const [notification, setNotification] = useState("");
 
 //   useEffect(() => {
-//     socket.on("receiveMessage", (data) => {
-//       setMessages((prev) => [...prev, data]);
-//     });
+//     // Join product room
+//     socket.emit("joinRoom", productId);
 
-//     socket.on("priceAgreed", (data) => {
-//       alert(`✅ Price agreed: ${data.price}`);
-//       window.location.href = "/payment"; // redirect
+//     // Listen for new messages
+//     socket.on("newMessage", (msg) => {
+//       if (msg.productId === productId) {
+//         setMessages((prev) => [...prev.filter((m) => m._id !== msg._id), msg]);
+
+//         // ✅ Notification logic
+//         if (sender === "seller" && msg.sender === "customer") {
+//           setNotification(`🔔 New message from ${msg.userName}: ${msg.message}`);
+//           setTimeout(() => setNotification(""), 5000);
+//         }
+//         if (sender === "customer" && msg.sender === "seller") {
+//           setNotification(`📩 Seller replied: ${msg.message}`);
+//           setTimeout(() => setNotification(""), 5000);
+//         }
+//       }
 //     });
 
 //     return () => {
-//       socket.off("receiveMessage");
-//       socket.off("priceAgreed");
+//       socket.off("newMessage");
 //     };
-//   }, []);
+//   }, [productId, sender]);
 
+//   // Send message
 //   const sendMessage = () => {
-//     if (input.trim() === "") return;
-//     const msg = { sender: user, receiver: otherUser, text: input };
-//     socket.emit("sendMessage", msg);
-//     setInput("");
+//     if (!newMsg.trim()) return alert("Message cannot be empty");
+
+//     socket.emit("sendMessage", {
+//       productId,
+//       message: newMsg,
+//       userName,
+//       sender, // "customer" or "seller"
+//       userEmail, // ✅ needed for email notification
+//       sellerEmail, // ✅ pass seller email from props
+//     });
+//     setNewMsg("");
 //   };
 
-//   const agreePrice = () => {
-//     socket.emit("agreePrice", { customer: user, seller: otherUser, price: "Final Price" });
+//   // Accept message (seller agreeing)
+//   const acceptMessage = (chatId) => {
+//     socket.emit("acceptMessage", { chatId, productId });
+//   };
+
+//   // Buy button only if both sides agreed
+//   const isBuyVisible = () => {
+//     const customerAccepted = messages.some(
+//       (msg) => msg.sender === "customer" && msg.accepted
+//     );
+//     const sellerAccepted = messages.some(
+//       (msg) => msg.sender === "seller" && msg.accepted
+//     );
+//     return customerAccepted && sellerAccepted;
 //   };
 
 //   return (
-//     <div className="chat-box">
-//       <div className="messages">
-//         {messages.map((m, i) => (
-//           <p key={i}><b>{m.sender}:</b> {m.text}</p>
+//     <div className="chat-container">
+//       <h3>Chat for Product {productId}</h3>
+
+//       {/* ✅ Notification */}
+//       {notification && (
+//         <div
+//           style={{
+//             background: "yellow",
+//             padding: "5px",
+//             marginBottom: "10px",
+//             fontWeight: "bold",
+//           }}
+//         >
+//           {notification}
+//         </div>
+//       )}
+
+//       <div
+//         className="chat-box"
+//         style={{
+//           height: "250px",
+//           overflowY: "auto",
+//           border: "1px solid #ccc",
+//           padding: "10px",
+//         }}
+//       >
+//         {messages.map((msg) => (
+//           <div
+//             key={msg._id}
+//             className="chat-message"
+//             style={{ marginBottom: "10px" }}
+//           >
+//             <strong>
+//               {msg.userName} ({msg.sender}):
+//             </strong>{" "}
+//             {msg.message} {msg.accepted && "✅"}
+//             {!msg.accepted &&
+//               msg.sender !== "customer" &&
+//               sender === "seller" && (
+//                 <button
+//                   onClick={() => acceptMessage(msg._id)}
+//                   style={{ marginLeft: "10px" }}
+//                 >
+//                   Agree
+//                 </button>
+//               )}
+//           </div>
 //         ))}
 //       </div>
-//       <input value={input} onChange={(e) => setInput(e.target.value)} />
-//       <button onClick={sendMessage}>Send</button>
-//       <button onClick={agreePrice} style={{ background: "green", color: "white" }}>
-//         Agree
-//       </button>
+
+//       <div style={{ marginTop: "10px" }}>
+//         <input
+//           type="text"
+//           placeholder="Type your message"
+//           value={newMsg}
+//           onChange={(e) => setNewMsg(e.target.value)}
+//           style={{ width: "70%", padding: "5px" }}
+//         />
+//         <button
+//           onClick={sendMessage}
+//           style={{ marginLeft: "5px", padding: "5px 10px" }}
+//         >
+//           Send
+//         </button>
+//       </div>
+
+//       {isBuyVisible() && (
+//         <button
+//           className="buy-now"
+//           style={{
+//             marginTop: "10px",
+//             padding: "8px 15px",
+//             background: "green",
+//             color: "white",
+//             border: "none",
+//           }}
+//         >
+//           Buy Now
+//         </button>
+//       )}
 //     </div>
 //   );
-// }
-import React, { useEffect, useState } from "react";
+// };
 
-const ChatBox = ({ productId, userName }) => {
-  const [messages, setMessages] = useState([]);
-  const [newMsg, setNewMsg] = useState("");
-
-  // Load chat messages
-  const loadChat = async () => {
-    const res = await fetch(`/api/chat/${productId}`);
-    const data = await res.json();
-    setMessages(data);
-  };
-
-  // Send message
-  const sendMessage = async () => {
-    if (!newMsg.trim()) return alert("Message cannot be empty");
-
-    await fetch("/api/chat/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        productId,
-        userName,
-        message: newMsg,
-        sender: "customer",
-      }),
-    });
-    setNewMsg("");
-    loadChat();
-  };
-
-  // Accept a message (seller clicks Agree)
-  const acceptMessage = async (chatId) => {
-    await fetch("/api/chat/accept", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chatId }),
-    });
-    loadChat();
-  };
-
-  // Check if Buy Now should appear
-  const isBuyVisible = () => {
-    // Must have at least one customer message AND one seller message accepted
-    const customerAccepted = messages.filter(
-      (msg) => msg.sender === "customer" && msg.accepted
-    ).length > 0;
-    const sellerAccepted = messages.filter(
-      (msg) => msg.sender === "seller" && msg.accepted
-    ).length > 0;
-    return customerAccepted && sellerAccepted;
-  };
-
-  useEffect(() => {
-    loadChat();
-    const interval = setInterval(loadChat, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="chat-container">
-      <div className="chat-box">
-        {messages.map((msg) => (
-          <div key={msg._id} className="chat-message">
-            <strong>
-              {msg.userName} ({msg.sender}):
-            </strong>{" "}
-            {msg.message} {msg.accepted && "✅"}
-            {!msg.accepted && msg.sender !== userName && (
-              <button
-                onClick={() => acceptMessage(msg._id)}
-                className="agree-btn"
-              >
-                Agree
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-
-      <input
-        type="text"
-        placeholder="Type your message"
-        value={newMsg}
-        onChange={(e) => setNewMsg(e.target.value)}
-      />
-      <button onClick={sendMessage}>Send</button>
-
-      {isBuyVisible() && <button className="buy-now">Buy Now</button>}
-    </div>
-  );
-};
-
-export default ChatBox;
- */
+// export default ChatBox;
 
 import React, { useEffect, useState } from "react";
 import io from "socket.io-client";
 
-const socket = io("http://localhost:3000"); // Update if different port
+const socket = io("http://localhost:5000"); // ✅ backend port
 
-const ChatBox = ({ productId, userName }) => {
+const ChatBox = ({ productId, userName, sender, userEmail, sellerEmail }) => {
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
+  const [notification, setNotification] = useState("");
 
   useEffect(() => {
+    // Join product room
     socket.emit("joinRoom", productId);
 
+    // Listen for new messages
     socket.on("newMessage", (msg) => {
       if (msg.productId === productId) {
-        setMessages((prev) => [...prev.filter(m => m._id !== msg._id), msg]);
+        setMessages((prev) => [...prev.filter((m) => m._id !== msg._id), msg]);
+
+        // ✅ Fixed Notification logic
+        if (sender === "seller" && msg.sender === "customer") {
+          setNotification(`🔔 New message from ${msg.userName}: ${msg.message}`);
+          setTimeout(() => setNotification(""), 5000);
+        }
+
+        if (sender === "customer" && msg.sender === "seller") {
+          setNotification(`📩 Seller replied: ${msg.message}`);
+          setTimeout(() => setNotification(""), 5000);
+        }
       }
     });
 
     return () => {
       socket.off("newMessage");
     };
-  }, [productId]);
+  }, [productId, sender]);
 
+  // Send message
   const sendMessage = () => {
     if (!newMsg.trim()) return alert("Message cannot be empty");
 
@@ -175,50 +197,111 @@ const ChatBox = ({ productId, userName }) => {
       productId,
       message: newMsg,
       userName,
-      sender: "customer",
+      sender,       // "customer" or "seller"
+      userEmail,    // ✅ needed for email notification
+      sellerEmail,  // ✅ needed for email notification
     });
+
     setNewMsg("");
   };
 
+  // Accept message (seller agreeing)
   const acceptMessage = (chatId) => {
     socket.emit("acceptMessage", { chatId, productId });
   };
 
+  // Buy button only if both sides agreed
   const isBuyVisible = () => {
-    const customerAccepted = messages.filter(
+    const customerAccepted = messages.some(
       (msg) => msg.sender === "customer" && msg.accepted
-    ).length > 0;
-    const sellerAccepted = messages.filter(
+    );
+    const sellerAccepted = messages.some(
       (msg) => msg.sender === "seller" && msg.accepted
-    ).length > 0;
+    );
     return customerAccepted && sellerAccepted;
   };
 
   return (
     <div className="chat-container">
-      <div className="chat-box">
+      <h3>Chat for Product {productId}</h3>
+
+      {/* ✅ Notification */}
+      {notification && (
+        <div
+          style={{
+            background: "yellow",
+            padding: "5px",
+            marginBottom: "10px",
+            fontWeight: "bold",
+          }}
+        >
+          {notification}
+        </div>
+      )}
+
+      <div
+        className="chat-box"
+        style={{
+          height: "250px",
+          overflowY: "auto",
+          border: "1px solid #ccc",
+          padding: "10px",
+        }}
+      >
         {messages.map((msg) => (
-          <div key={msg._id} className="chat-message">
+          <div
+            key={msg._id}
+            className="chat-message"
+            style={{ marginBottom: "10px" }}
+          >
             <strong>
               {msg.userName} ({msg.sender}):
             </strong>{" "}
             {msg.message} {msg.accepted && "✅"}
-            {!msg.accepted && msg.sender !== "customer" && (
-              <button onClick={() => acceptMessage(msg._id)}>Agree</button>
-            )}
+            {!msg.accepted &&
+              msg.sender !== "customer" &&
+              sender === "seller" && (
+                <button
+                  onClick={() => acceptMessage(msg._id)}
+                  style={{ marginLeft: "10px" }}
+                >
+                  Agree
+                </button>
+              )}
           </div>
         ))}
       </div>
 
-      <input
-        type="text"
-        placeholder="Type your message"
-        value={newMsg}
-        onChange={(e) => setNewMsg(e.target.value)}
-      />
-      <button onClick={sendMessage}>Send</button>
+      <div style={{ marginTop: "10px" }}>
+        <input
+          type="text"
+          placeholder="Type your message"
+          value={newMsg}
+          onChange={(e) => setNewMsg(e.target.value)}
+          style={{ width: "70%", padding: "5px" }}
+        />
+        <button
+          onClick={sendMessage}
+          style={{ marginLeft: "5px", padding: "5px 10px" }}
+        >
+          Send
+        </button>
+      </div>
 
-      {isBuyVisible() && <button className="buy-now">Buy Now</button>}
+      {isBuyVisible() && (
+        <button
+          className="buy-now"
+          style={{
+            marginTop: "10px",
+            padding: "8px 15px",
+            background: "green",
+            color: "white",
+            border: "none",
+          }}
+        >
+          Buy Now
+        </button>
+      )}
     </div>
   );
 };

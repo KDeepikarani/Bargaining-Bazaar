@@ -1,43 +1,32 @@
-/*
 
+
+// server/app.js
 const express = require("express");
 const mongoose = require("mongoose");
+const dotenv = require("dotenv");
+const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
-const cors = require("cors");
-const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
-require("dotenv").config();
 
-const Chat = require("./models/Chat");
-const authRoutes = require("./routes/authRoutes");  // ✅ use authRoutes
-const chatRoutes = require("./routes/chatRoutes");  // ✅ mounted below
-
+dotenv.config();
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+app.use(express.json());
 
-// ------------------------
-// MongoDB connection
-// ------------------------
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+// routes
+const authRoutes = require("./routes/authRoutes");
+const chatRoutes = require("./routes/chatRoutes");
 
-// ------------------------
-// Routes
-// ------------------------
-app.use("/api/auth", authRoutes);   // ✅ now handles /signup and /login
-app.use("/api/chat", chatRoutes);   // ✅ mounted chat routes
+app.use("/api/auth", authRoutes);
+app.use("/api/chats", chatRoutes);
 
-// ------------------------
-// Setup Nodemailer
-// ------------------------
+// connect mongo
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(()=>console.log("MongoDB Connected ✅"))
+  .catch(err=>console.log("MongoDB Error:", err));
+
+// Nodemailer transporter (optional — used to notify seller)
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -46,104 +35,73 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// ------------------------
-// Socket.IO setup
-// ------------------------
+// server + socket.io
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+const io = new Server(server, {
+  cors: { origin: "http://localhost:3000", methods: ["GET","POST"] }
+});
+
+// helper: room name for private chat between customer and seller for a product
+const makeRoomName = (productId, senderEmail, sellerEmail) => {
+  // stable canonical order: productId + seller + customer (seller first)
+  return `${productId}-${sellerEmail}-${senderEmail}`;
+};
+
+const Chat = require("./models/Chat");
 
 io.on("connection", (socket) => {
-  console.log("🔌 New connection:", socket.id);
+  console.log("User connected:", socket.id);
 
-  socket.on("joinRoom", (productId) => {
-    socket.join(`product-${productId}`);
-    console.log(`User joined room: product-${productId}`);
+  socket.on("joinRoom", (roomData) => {
+    const { productId, senderEmail, sellerEmail } = roomData || {};
+    if (!productId || !senderEmail || !sellerEmail) {
+      console.log("Missing data to join room:", roomData);
+      return;
+    }
+    const room = makeRoomName(productId, senderEmail, sellerEmail);
+    socket.join(room);
+    console.log(`${senderEmail} joined room: ${room}`);
   });
 
-  socket.on(
-    "sendMessage",
-    async ({ productId, message, userName, sender, userEmail, sellerEmail }) => {
-      try {
-        userName = userName || "Anonymous";
-        sender = sender || "customer";
-
-        // Save chat to DB
-        const chat = new Chat({
-          productId,
-          message,
-          userName,
-          sender,
-        });
-        await chat.save();
-
-        // ✅ Send email only if logged-in customer
-        if (sender === "customer" && userEmail && userName !== "Anonymous") {
-          const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: sellerEmail,
-            subject: "New Bargain Message from Customer",
-            text: `You have a new message from ${userName}: ${message}`,
-          };
-
-          transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-              console.error("Email error:", error);
-            } else {
-              console.log("Email sent:", info.response);
-            }
-          });
-        }
-
-        // ✅ Emit message to room
-        io.to(`product-${productId}`).emit("newMessage", chat);
-      } catch (err) {
-        console.error("sendMessage error:", err);
-      }
+  socket.on("sendMessage", async (data) => {
+    const { productId, userName, sender, message, senderEmail, sellerEmail } = data || {};
+    if (!productId || !message || !senderEmail || !sellerEmail) {
+      console.log("Missing chat data:", data);
+      return;
     }
-  );
 
-  socket.on("acceptMessage", async ({ chatId, productId, userType }) => {
     try {
-      const chat = await Chat.findById(chatId);
-      if (!chat) return;
-
-      if (userType === "seller") chat.sellerAccepted = true;
-      if (userType === "customer") chat.customerAccepted = true;
-
-      if (chat.sellerAccepted && chat.customerAccepted)
-        chat.dealFinalized = true;
-
+      // save to DB
+      const chat = new Chat({ productId: String(productId), userName, sender, message, senderEmail, sellerEmail });
       await chat.save();
-      io.to(`product-${productId}`).emit("newMessage", chat);
+
+      const room = makeRoomName(productId, senderEmail, sellerEmail);
+      // emit to that private room
+      io.to(room).emit("receiveMessage", chat);
+
+      // send email notification to seller (optional — only if sender is not the seller)
+      if (senderEmail !== sellerEmail && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: sellerEmail,
+          subject: `New message about your product ${productId}`,
+          text: `You have a new message from ${userName} (${senderEmail}):\n\n${message}`
+        }, (err, info) => {
+          if (err) console.log("Email Error:", err);
+          else console.log("Email sent:", info.response);
+        });
+      }
     } catch (err) {
-      console.error("acceptMessage error:", err);
+      console.error("Error saving/sending chat:", err);
     }
   });
 
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
+  socket.on("disconnect", () => console.log("User disconnected:", socket.id));
 });
 
-// ------------------------
-// Get chats by productId
-// ------------------------
-app.get("/api/chat/:productId", async (req, res) => {
-  try {
-    const { productId } = req.params;
-    const chats = await Chat.find({ productId }).sort({ createdAt: 1 });
-    res.json(chats);
-  } catch (err) {
-    console.error("Fetch chat error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ------------------------
-// Start the server
-// ------------------------
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-*/
+server.listen(PORT, () => console.log(`Server running on port ${PORT} ✅`));
+
+
+
+

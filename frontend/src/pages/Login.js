@@ -1,4 +1,4 @@
-// frontend/src/pages/Login.js
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -9,12 +9,9 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // ✅ Auto-redirect if already logged in
   useEffect(() => {
     const user = localStorage.getItem("user");
-    if (user) {
-      navigate("/Product"); // your product/home page route
-    }
+    if (user) navigate("/Product");
   }, [navigate]);
 
   const handleLogin = async (e) => {
@@ -23,8 +20,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // ✅ Use proxy, no need for full URL
-      const res = await fetch("/api/login", {
+      const res = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -38,11 +34,11 @@ const Login = () => {
         return;
       }
 
-      // ✅ Save user info
+      // ✅ Store user info for chat
       localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("token", data.token || "dummy-token"); // optional
+      localStorage.setItem("userEmail", data.user.email);
 
-      navigate("/Product"); // redirect after login success
+      navigate("/Product");
     } catch (err) {
       setLoading(false);
       setError("Something went wrong. Try again.");
@@ -54,50 +50,20 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-md">
         <h2 className="text-2xl font-bold text-center mb-6">Login</h2>
-
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-gray-700">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg focus:ring focus:ring-blue-300"
-              required
-            />
+            <label>Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full px-4 py-2 border rounded-lg"/>
           </div>
-
           <div>
-            <label className="block text-gray-700">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg focus:ring focus:ring-blue-300"
-              required
-            />
+            <label>Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full px-4 py-2 border rounded-lg"/>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
-          >
+          <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-2 rounded-lg">
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
-
-        <p className="text-center mt-4 text-gray-600">
-          Don’t have an account?{" "}
-          <span
-            className="text-blue-600 cursor-pointer"
-            onClick={() => navigate("/SignupPage")}
-          >
-            Sign up
-          </span>
-        </p>
       </div>
     </div>
   );

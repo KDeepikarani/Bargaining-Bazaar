@@ -1,7 +1,9 @@
 import React from "react";
+
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min";
 import "../styles/Home.css";
+
 
 // ✅ Import images from src/assets
 import logo from "../assets/logo.jpg";
@@ -54,7 +56,9 @@ const Home = () => {
                 <a className="nav-link" href="/signup">Sign Up</a>
               </li>
               <li className="nav-item">
-                <a className="nav-link" href="/login">Login</a>
+                 <a className="nav-link" href="/login">Login</a> 
+                
+
               </li>
             </ul>
           </div>
@@ -135,3 +139,8 @@ const Home = () => {
 };
 
 export default Home;
+
+
+
+
+

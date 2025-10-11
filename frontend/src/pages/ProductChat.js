@@ -1,133 +1,145 @@
-/* import React from "react";
+/* import React, { useState, useEffect } from "react";
+import io from "socket.io-client";
 
-export default function PaymentPage() {
-  const handlePay = () => {
-    alert("Payment Successful ✅");
-    window.location.href = "/thankyou";
+const socket = io("http://localhost:5000");
+
+const ProductChat = ({ productId, sellerEmail }) => {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  useEffect(() => {
+    if (!user || !user.email) return;
+
+    // Join room
+    socket.emit("joinRoom", {
+      productId,
+      senderEmail: user.email,
+      sellerEmail
+    });
+
+    // Listen messages
+    socket.on("receiveMessage", (msg) => {
+      setMessages(prev => [...prev, msg]);
+    });
+
+    return () => socket.off("receiveMessage");
+  }, [productId, sellerEmail, user]);
+
+  const sendMessage = () => {
+    if (!input || !user) return;
+
+    socket.emit("sendMessage", {
+      productId,
+      userName: user.name,
+      sender: "customer",
+      message: input,
+      senderEmail: user.email,
+      sellerEmail
+    });
+
+    setInput("");
   };
+
+  if (!user) return <p>Please login/signup to chat.</p>;
 
   return (
     <div>
-      <h2>Payment Gateway</h2>
-      <button onClick={handlePay}>Pay Now</button>
+      <div>
+        {messages.map((msg, idx) => (
+          <div key={idx}>
+            <b>{msg.userName}:</b> {msg.message}
+          </div>
+        ))}
+      </div>
+      <input value={input} onChange={e => setInput(e.target.value)} placeholder="Type a message"/>
+      <button onClick={sendMessage}>Send</button>
     </div>
   );
-}
+};
+
+export default ProductChat;
  */
 
 
-/*
-import React from "react";
-import ChatBox from "../components/ChatBox";
-
-const products = [
-  { _id: "64f1a1e1a1b2c3d4e5f6a7b8", name: "Product 1" },
-  { _id: "64f1a1e1a1b2c3d4e5f6a7b9", name: "Product 2" },
-];
-
-const ProductPage = () => {
-  const userName = "Deepika"; // Or dynamically from login
-
-  return (
-    <div>
-      <h1>Products</h1>
-      {products.map((product) => (
-        <div key={product._id} className="product">
-          <h3>{product.name}</h3>
-          <ChatBox productId={product._id} userName={userName} />
-        </div>
-      ))}
-    </div>
-  );
-};
-
-export default ProductPage;
-*/
 
 
+/* import React, { useState, useEffect } from "react";
+import io from "socket.io-client";
 
-import React, { useState, useEffect } from 'react';
-import io from 'socket.io-client';
-import axios from 'axios';
+const socket = io("http://localhost:5000"); // ✅ backend server
 
-const socket = io("http://localhost:5000"); // backend server
-
-function ProductChat({ productId, userId, sellerId }) {
-  const [message, setMessage] = useState('');
-  const [chatHistory, setChatHistory] = useState([]);
-
-  // Replace these with actual data from your login
-// Assume you store login user in localStorage
-const user = JSON.parse(localStorage.getItem("user"));
-
-const userEmail = user ? user.email : null; 
-const userName = user ? user.name : "Anonymous";
-const sellerEmail = "bargainingbazaar20@gmail.com"; // or load from seller profile
-
+function ProductChat({ productId, sellerEmail }) {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    socket.emit('joinRoom', { productId });
-
-  socket.on('newMessage', (chat) => {
-  setChatHistory(prev => [...prev, { from: chat.userName || chat.sender, message: chat.message }]);
-});
-
-return () => {
-  socket.off('newMessage');
-};
-
-  }, [productId]);
-
-  const sendMessage = async () => {
-    if (message.trim() === '') return;
-
-    setChatHistory(prev => [...prev, { from: 'You', message }]);
-
-    try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/api/chat/send-message`, {
-        productId,
-        userId,
-        sellerId,
-        message,
-        from: 'You',
-        userEmail,
-        sellerEmail
-      });
-socket.emit("sendMessage", {
-  productId,
-  message,
-  userName,
-  sender: user ? "customer" : "guest", 
-  userEmail,
-  sellerEmail
-});
-
-
-      setMessage('');
-    } catch (error) {
-      console.error("Error sending message:", error);
+    // ✅ Get logged-in user
+    const loggedUser = JSON.parse(localStorage.getItem("user"));
+    if (!loggedUser || !loggedUser.email) {
+      console.log("User not logged in. Redirect to login.");
+      return;
     }
+    setUser(loggedUser);
+
+    // ✅ Join room only if all data exists
+    if (productId && sellerEmail) {
+      socket.emit("joinRoom", {
+        productId,
+        senderEmail: loggedUser.email,
+        sellerEmail,
+      });
+    }
+
+    // Listen for incoming messages
+    socket.on("receiveMessage", (msg) => {
+      setMessages((prev) => [...prev, msg]);
+    });
+
+    return () => {
+      socket.off("receiveMessage");
+    };
+  }, [productId, sellerEmail]);
+
+  const handleSend = () => {
+    if (!input.trim() || !user) return;
+
+    socket.emit("sendMessage", {
+      productId,
+      userName: user.name,
+      sender: "customer",
+      message: input,
+      senderEmail: user.email,
+      sellerEmail,
+    });
+
+    setInput(""); // clear input
   };
 
   return (
-    <div className="mt-3">
-      <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #ccc', padding: '10px' }}>
-        {chatHistory.map((chat, index) => (
-          <div key={index}><strong>{chat.from}:</strong> {chat.message}</div>
+    <div className="chat-container" style={{ border: "1px solid #ccc", padding: "10px" }}>
+      <h3>Product Chat</h3>
+      <div className="messages" style={{ minHeight: "200px", marginBottom: "10px" }}>
+        {messages.map((msg, index) => (
+          <div key={index} style={{ margin: "5px 0" }}>
+            <strong>{msg.userName}:</strong> {msg.message}
+          </div>
         ))}
       </div>
-      <div className="input-group mt-2">
-        <input
-          type="text"
-          className="form-control"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type a message..."
-        />
-        <button className="btn btn-primary" onClick={sendMessage}>Send</button>
-      </div>
+      <input
+        type="text"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="Type a message"
+        style={{ width: "80%", padding: "5px" }}
+      />
+      <button onClick={handleSend} style={{ width: "18%", marginLeft: "2%" }}>
+        Send
+      </button>
     </div>
   );
 }
 
 export default ProductChat;
+ */
