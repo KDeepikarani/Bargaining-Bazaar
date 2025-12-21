@@ -4,7 +4,8 @@ import React, { useEffect, useState } from "react";
 import io from "socket.io-client";
 import axios from "axios";
 
-const socket = io("http://localhost:5000");
+// const socket = io("http://localhost:5000");
+const socket = io(process.env.REACT_APP_API_UR);
 
 function ProductChat({ productId, sellerEmail, userName: propUserName, userEmail: propUserEmail }) {
   const [messages, setMessages] = useState([]);
@@ -33,9 +34,11 @@ function ProductChat({ productId, sellerEmail, userName: propUserName, userEmail
     });
 
     // fetch existing chats for this product, then filter to only show messages between this customer & seller
+
+    //`http://localhost:5000/api/chats/${productId}`
     const fetchChats = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/chats/${productId}`);
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/chats/${productId}`);
         const all = res.data || [];
         const pair = all.filter(c => {
           // show messages where pair matches (either direction)
@@ -94,11 +97,22 @@ const payload = {
     socket.emit("sendMessage", payload);
 
     // persist via REST as well (optional double-write is safe)
-    try {
+    /* try {
       await axios.post("http://localhost:5000/api/chats", payload);
     } catch (err) {
       console.error("Save chat error:", err);
-    }
+    } */
+
+
+      try {
+  // Use backend URL from environment variable (works in local + deployed)
+  await axios.post(
+    `${process.env.REACT_APP_API_URL}/api/chats`,
+    payload
+  );
+} catch (err) {
+  console.error("Save chat error:", err);
+}
 
     // UI immediate update
     setMessages(prev => [...prev, payload]);

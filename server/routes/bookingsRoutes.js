@@ -4,7 +4,7 @@ async function startPayment() {
 
   try {
     // 1. Call backend to create order
-    const response = await fetch("http://localhost:5000/api/payment", {
+    const response = await fetch(`${process.env.REACT_APP_API_URL}/api/payment`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

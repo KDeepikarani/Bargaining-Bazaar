@@ -39,10 +39,24 @@ const transporter = nodemailer.createTransport({
 });
 
 // server + socket.io
-const server = http.createServer(app);
+/* const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: "http://localhost:3000", methods: ["GET","POST"] }
 });
+ */
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: [
+      "http://localhost:3000",
+      "https://bargaining-bazaar-app.netlify.app/"
+    ],
+    methods: ["GET", "POST"]
+  }
+});
+
+
 
 // helper: room name for private chat between customer and seller for a product
 const makeRoomName = (productId, senderEmail, sellerEmail) => {
