@@ -155,7 +155,7 @@
 import React, { useEffect, useState } from "react";
 import io from "socket.io-client";
 
-const socket = io("http://localhost:5000"); // ✅ backend port
+const socket = io("https://bargaining-bazaar-backend.onrender.com"); // ✅ backend port
 
 const ChatBox = ({ productId, userName, sender, userEmail, sellerEmail }) => {
   const [messages, setMessages] = useState([]);
