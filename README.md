@@ -102,8 +102,8 @@ npm start
 ## 📬 Contact
 
 For queries or collaboration:
-📧 Email: studiesfor456@gmail.com
-🌐 GitHub: https://github.com/Deepikasel
+📧 Email: deepikaranideeepika4@gmail.com
+🌐 GitHub: [https://github.com/KDeepikarani]
 
 ## ⭐ Acknowledgement
 Special thanks to my self learning, my partner and platforms that supported this project’s development and deployment.
